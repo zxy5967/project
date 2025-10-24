@@ -61,17 +61,74 @@ def autoNorm(dataSet):
 
 def datingClassTest():
     # 使用留出法：设置测试集比例（hold-out比例），这里使用50%的数据作为测试集
+    hoRatio = 0.50
+    datingDataMat,datingLabels = file2matrix(file_path)
+    normMat,ranges,minVals = autoNorm(datingDataMat)
+    m = normMat.shape[0]
+    numTestVecs = int(m*hoRatio)
+    errorCount = 0.0
+
+    for i in range(numTestVecs):
+        classifierResult = classify0(normMat[i,:],normMat[numTestVecs:m,:] datingLabels[numTestVecs,:],3)
+        print(f'分类器的预测结果:{classifierResult},真实结果：{datingLabels[i]}')
+        if(classifierResult != datingLabels[i]): errorCount +=1.0
+
+    print(f'总错误率：{errorCount / float(numTestVecs)}')
+    print(errorCount)
 
 #datingClassTest()
 
 def classify0(inX, dataSet, labels, k):
    #KNN分类核心代码
+    dataSetSize = dataSet.shape[0]
+    diffMat = tile(inX,(dataSetSize,1)) - dataSet
+    sqDiffMat = diffMat**2
+    sqDistances = sqDiffMat.sum(axis = 1)
+    distances = sqDistances**0.5
+    sortedDistIndicies = distances.argsort()
+    classCount = {}
+
+    for i in range(k):
+        voteIlabel = labels[sortedDistIndicies[i]]
+        classCount[voteIlabel] = classCount.get(voteIlabel,0) + 1
+    sortedClassCount = sorted(classCount.iteritems(),key=operator.itemgetter(1),reverse=True)
+
+    return sortedClassCount[0][0]
+
 
 def classify_person():
     """
     交互式输入三项特征，使用约会数据集做 KNN 分类，并输出印象结果。
     """
+    result_list =['不感兴趣','有点兴趣','非常感兴趣']
+
+    try:
+        percent_tats = input("业余时间花费在视频游戏上的时间比率（0~1，输入q退出）")
+        if percent_tats.lower() in ['q','exit']:
+            return None
+        percent_tats = float(percent_tats)
+        ff_miles = float(input("每年飞行的公里数："))
+        ice_cream = float(input("每年消耗的冰淇淋公升数："))
+    except ValueError:
+        return True
+
+    datingDataMat, datingLabels = file2matrix(file_path)
+    normMat,ranges,minVals = autoNorm(datingDataMat)
+    in_arr = array([ff_miles,percent_tats,ice_cream])
+    classifile_result = classify0((in_arr-minVals)/ranges,normMat,datingLabels,3)
+    idx = int(classifile_result) - 1
+    desc = result_list[idx] if 0 <= idx < len(result_list) else str(classifile_result)
+    print(f"你对这个人的印象是：{desc}")
+    return True
+
 
 
 # —— 死循环调用 ——
 if __name__ == "__main__":
+    print("=== 约会数据 KNN 测试系统 ===")
+    print("输入'g'或'exit'可以退出")
+    while True:
+        flag = classify_person()
+        if flag is None:
+            print("程序已退出")
+            break
